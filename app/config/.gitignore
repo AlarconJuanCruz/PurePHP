@@ -1,0 +1,2 @@
+# Ignore the installer lock file and local database config
+.installed
