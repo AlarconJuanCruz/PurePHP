@@ -24,7 +24,7 @@ PurePHP es un framework ligero y artesanal construido desde cero, diseñado para
 
 1. Clona el repositorio:
 
-    git clone https://github.com/tu-usuario/purephp.git
+    git clone https://github.com/AlarconJuanCruz/PurePHP
 
 2. Sigue los pasos de instalaccion en la ruta instalada
    
