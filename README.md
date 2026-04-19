@@ -78,7 +78,3 @@ Los Pull Requests son bienvenidos.
 3. Haz commit de tus cambios (git commit -m 'Añadí una funcionalidad').
 4. Haz Push a la rama (git push origin feature/MejoraIncreible).
 5. Abre un Pull Request.
-
----
-
-Desarrollado por Juancho - https://github.com/tu-usuario
