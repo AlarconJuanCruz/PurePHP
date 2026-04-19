@@ -12,20 +12,14 @@ define('VIEWS_PATH', APP_PATH . '/views');
 (function () {
     $scheme = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
         ? 'https' : 'http';
-
-    $host = rtrim((string)($_SERVER['HTTP_HOST'] ?? 'localhost'), '/');
-
-    // On Windows, SCRIPT_NAME may use backslashes; dirname may return '\' or '.'
+    $host   = rtrim((string)($_SERVER['HTTP_HOST'] ?? 'localhost'), '/');
     $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
     $dir    = str_replace('\\', '/', dirname($script));
-
-    // Normalise: '/' , '\' and '.' all mean "application is at the domain root"
     if ($dir === '/' || $dir === '\\' || $dir === '.' || $dir === '') {
         $dir = '';
     } else {
         $dir = '/' . trim($dir, '/');
     }
-
     define('BASE_URL', $scheme . '://' . $host . $dir);
 })();
 
@@ -53,9 +47,10 @@ if (session_status() === PHP_SESSION_NONE) {
 // ── Helpers ───────────────────────────────────────────────────────────────
 require_once ROOT_PATH . '/core/helpers.php';
 
+// ── Language (boot AFTER helpers so __() is available everywhere) ─────────
+Lang::boot($_SESSION['_locale'] ?? 'es_AR');
+
 // ── Installer gate ────────────────────────────────────────────────────────
-// If the app has not been installed yet, redirect every request to /install
-// EXCEPT requests that are already going to /install
 $_installedFlag = APP_PATH . '/config/.installed';
 $_rawPath       = safe_parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'));
 

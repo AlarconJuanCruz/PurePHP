@@ -4,38 +4,31 @@
  * Pure PHP — Global helpers
  */
 
-// ── safe_parse_url ─────────────────────────────────────────────────────────
-// parse_url() returns null|false on malformed input (common on Windows/Laragon).
-// This wrapper always returns a clean path string.
+// ── safe_parse_url ────────────────────────────────────────────────────────
 if (!function_exists('safe_parse_url')) {
     function safe_parse_url(string $raw): string {
         $path = parse_url($raw, PHP_URL_PATH);
-        if (!is_string($path) || $path === '') {
-            $path = '/';
-        }
-        // Normalise backslashes (Windows)
+        if (!is_string($path) || $path === '') { $path = '/'; }
         $path = str_replace('\\', '/', $path);
-        // Collapse accidental double-slashes
         $path = (string) preg_replace('#/{2,}#', '/', $path);
         return '/' . trim($path, '/') ?: '/';
     }
 }
 
-// ── url() ──────────────────────────────────────────────────────────────────
+// ── url() ─────────────────────────────────────────────────────────────────
 if (!function_exists('url')) {
-    /**
-     * Generate an absolute URL.
-     * url('/users') → http://purephp.test/users
-     * Works in vhosts AND subdirectory installs.
-     */
     function url(string $path = ''): string {
         $base = rtrim((string) BASE_URL, '/');
-
-        // Normalise path: always starts with /, no double slashes
         $path = '/' . ltrim($path, '/');
         $path = (string) preg_replace('#/{2,}#', '/', $path);
-
         return $base . $path;
+    }
+}
+
+// ── asset() ───────────────────────────────────────────────────────────────
+if (!function_exists('asset')) {
+    function asset(string $path): string {
+        return url('public/' . ltrim($path, '/'));
     }
 }
 
@@ -46,10 +39,45 @@ if (!function_exists('e')) {
     }
 }
 
-// ── asset() ───────────────────────────────────────────────────────────────
-if (!function_exists('asset')) {
-    function asset(string $path): string {
-        return url('public/' . ltrim($path, '/'));
+// ── __() — Translation helper ─────────────────────────────────────────────
+if (!function_exists('__')) {
+    /**
+     * Translate a dot-notation key.
+     *
+     * @param string               $key     e.g. 'nav.dashboard'
+     * @param array<string,scalar> $replace e.g. ['name' => 'Alice']
+     */
+    function __(string $key, array $replace = []): string {
+        return Lang::get($key, $replace);
+    }
+}
+
+// ── _a() — Translation array ──────────────────────────────────────────────
+if (!function_exists('_a')) {
+    /** Get a translation array (e.g. month labels). */
+    function _a(string $key): array {
+        return Lang::arr($key);
+    }
+}
+
+// ── lang helpers ──────────────────────────────────────────────────────────
+if (!function_exists('switchLang')) {
+    function switchLang(string $locale): void {
+        $_SESSION['_locale'] = $locale;
+        Lang::boot($locale);
+    }
+}
+
+if (!function_exists('currentLocale')) {
+    function currentLocale(): string {
+        return Lang::locale();
+    }
+}
+
+if (!function_exists('localDate')) {
+    /** Format a date string according to current locale. */
+    function localDate(?string $date): string {
+        return Lang::date((string) $date);
     }
 }
 
@@ -84,7 +112,7 @@ if (!function_exists('csrf_field')) {
 
 if (!function_exists('verify_csrf')) {
     function verify_csrf(): void {
-        $token = (string) ($_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+        $token  = (string) ($_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
         $stored = (string) ($_SESSION['_csrf_token'] ?? '');
         if ($stored === '' || !hash_equals($stored, $token)) {
             http_response_code(419);
@@ -93,7 +121,7 @@ if (!function_exists('verify_csrf')) {
     }
 }
 
-// ── Session helpers ───────────────────────────────────────────────────────
+// ── Session / flash ───────────────────────────────────────────────────────
 if (!function_exists('flash')) {
     function flash(string $key, string $message): void {
         $_SESSION['_flash'][$key] = $message;
@@ -114,11 +142,9 @@ if (!function_exists('session')) {
     }
 }
 
-// ── Auth helpers ──────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────
 if (!function_exists('auth')) {
-    function auth(): ?array {
-        return $_SESSION['_auth_user'] ?? null;
-    }
+    function auth(): ?array { return $_SESSION['_auth_user'] ?? null; }
 }
 
 if (!function_exists('isGuest')) {
@@ -127,10 +153,7 @@ if (!function_exists('isGuest')) {
 
 if (!function_exists('requireAuth')) {
     function requireAuth(): void {
-        if (isGuest()) {
-            header('Location: ' . url('/login'));
-            exit;
-        }
+        if (isGuest()) { header('Location: ' . url('/login')); exit; }
     }
 }
 
@@ -148,21 +171,14 @@ if (!function_exists('can')) {
 
 // ── isActive() ────────────────────────────────────────────────────────────
 if (!function_exists('isActive')) {
-    /**
-     * Returns 'active' when current URI matches the given path(s).
-     * Uses safe_parse_url so it never throws a deprecation on Windows.
-     */
     function isActive(string|array $paths, bool $exact = true): string {
         $current = safe_parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'));
-        // Normalise: no trailing slash except root
         $current = $current === '/' ? '/' : rtrim($current, '/');
-
         foreach ((array) $paths as $path) {
             $path = '/' . trim((string) $path, '/');
-            $match = $exact
-                ? ($current === $path)
-                : str_starts_with($current, $path);
-            if ($match) return 'active';
+            if ($exact ? ($current === $path) : str_starts_with($current, $path)) {
+                return 'active';
+            }
         }
         return '';
     }
